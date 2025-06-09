@@ -68,28 +68,65 @@ const deleteIncome = async (req, res) => {
 
 // Controller to download incomes as an Excel file
 const downloadIncomeExcel = async (req, res) => {
-  const userId = req.user._id; // Assuming user ID is available in req.user
+  // const userId = req.user._id; // Assuming user ID is available in req.user
+  // try {
+  //   // Fetch all incomes for the user
+  //   const incomes = await Income.find({ userId }).sort({ date: -1 });
+  //   if (!incomes || incomes.length === 0) {
+  //     return res.status(404).json({ message: "No incomes found" });
+  //   }
+  //   // Prepare data for Excel
+  //   const data = incomes.map((income) => ({
+  //     Date: income.date, // Format date as YYYY-MM-DD
+  //     Source: income.source,
+  //     Amount: income.amount,
+  //   }));
+
+  //   // Create a new workbook and worksheet
+  //   const wb = xlsx.utils.book_new();
+  //   const ws = xlsx.utils.json_to_sheet(data);
+  //   xlsx.utils.book_append_sheet(wb, ws, "Incomes");
+  //   // Generate a buffer from the workbook
+  //   xlsx.writeFile(wb, "incomes.xlsx");
+  //   // Set headers for the response
+  //   res.download("incomes.xlsx");
+  // } catch (error) {
+  //   console.error("Error downloading income Excel:", error);
+  //   res.status(500).json({ message: "Internal server error" });
+  // }
+
+  const userId = req.user._id;
+
   try {
-    // Fetch all incomes for the user
     const incomes = await Income.find({ userId }).sort({ date: -1 });
+
     if (!incomes || incomes.length === 0) {
       return res.status(404).json({ message: "No incomes found" });
     }
-    // Prepare data for Excel
-    const data = incomes.map((income) => ({
-      Date: income.date, // Format date as YYYY-MM-DD
-      Source: income.source,
-      Amount: income.amount,
+
+    const data = incomes.map((expense) => ({
+      Date: expense.date.toISOString().split("T")[0],
+      Category: expense.category,
+      Amount: expense.amount,
     }));
 
-    // Create a new workbook and worksheet
     const wb = xlsx.utils.book_new();
     const ws = xlsx.utils.json_to_sheet(data);
     xlsx.utils.book_append_sheet(wb, ws, "Incomes");
-    // Generate a buffer from the workbook
-    xlsx.writeFile(wb, "incomes.xlsx");
-    // Set headers for the response
-    res.download("incomes.xlsx");
+
+    // ✅ Create in-memory buffer instead of writing to file system
+    const buffer = xlsx.write(wb, {
+      bookType: "xlsx",
+      type: "buffer",
+    });
+
+    // ✅ Set headers and stream the buffer
+    res.setHeader("Content-Disposition", "attachment; filename=incomes.xlsx");
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.send(buffer);
   } catch (error) {
     console.error("Error downloading income Excel:", error);
     res.status(500).json({ message: "Internal server error" });
