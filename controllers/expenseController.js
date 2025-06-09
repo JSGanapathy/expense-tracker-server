@@ -69,6 +69,7 @@ const deleteExpense = async (req, res) => {
 // Controller to download expenses as an Excel file
 const downloadExpenseExcel = async (req, res) => {
   const userId = req.user._id; // Assuming user ID is available in req.user
+  console.log(userId);
   try {
     // Fetch all expenses for the user
     const expenses = await Expense.find({ userId }).sort({ date: -1 });
